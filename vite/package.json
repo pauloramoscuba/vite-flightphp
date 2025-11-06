@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "APP_ENV=development vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.16",
+    "alpinejs": "^3.15.1",
+    "tailwindcss": "^4.1.16"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.4",
+    "vite": "^7.2.0",
+    "vite-plugin-live-reload": "^3.0.5"
+  }
+}
