@@ -13,6 +13,7 @@ class Vite
     protected Engine $app;
     private string $viteHost;
     private string $baseUrl;
+    private object $session;
 
     /**
      * @param Engine $app
@@ -22,6 +23,8 @@ class Vite
         $this->app = $app;
         $this->viteHost = "http://" . $app->get('vite_host');
         $this->baseUrl = $app->get('flight.base_url');
+        /** @var \flight\Session $this->app->session() */
+        $this->session = $this->app->session();
     }
 
     /**
@@ -29,7 +32,8 @@ class Vite
      */
     public function entry(string $entry): string
     {
-        return "\n" . $this->jsTag($entry)
+        $this->session->set('vite_entry', $entry);
+        return $this->jsTag($entry)
             . "\n" . $this->jsPreloadImports($entry)
             . "\n" . $this->cssTag($entry);
     }
@@ -123,7 +127,6 @@ class Vite
      */
     public function getManifest(): array
     {
-        // The original helper used __DIR__ inside public/helpers.php.
         // To keep the same behavior, point to public/dist/.vite/manifest.json
         $projectRoot = dirname(__DIR__, 2); // app/controllers -> app -> project root
         $manifestPath = "{$projectRoot}/public/dist/.vite/manifest.json";
@@ -151,6 +154,30 @@ class Vite
         return isset($manifest[$entry])
             ? $this->baseUrl . 'dist/' . $manifest[$entry]['file']
             : '';
+    }
+
+    /**
+     * Returns the URL for an asset (like image) referenced in the manifest
+     */
+    public function asset(string $assetPath): string
+    {
+        $entry = $this->session->get('vite_entry') ?? 'main.js';
+        if ($this->isDev($entry)) {
+            // In development, assets are served from the /src directory
+            return $this->viteHost . '/assets/' . basename($assetPath);
+        } else {
+            // In production, find asset in manifest
+            $manifest = $this->getManifest();
+            // Look for the asset in the manifest
+            foreach ($manifest as $key => $value) {
+                if (isset($value['file']) && basename($key) === basename($assetPath)) {
+                    return $this->baseUrl . 'dist/' . $value['file'];
+                }
+            }
+
+            // If not found in manifest, return a fallback path
+            return $this->baseUrl . 'dist/assets/' . basename($assetPath);
+        }
     }
 
     public function importsUrls(string $entry): array
