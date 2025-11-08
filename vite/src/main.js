@@ -10,6 +10,9 @@ import "./components/images.js";
 import viteLogo from "./assets/vite.svg";
 import { setupCounter } from "./components/counter.js";
 
+// Get the FlightPHP logo from the global window object
+const flightLogo = window.flightLogo;
+
 document.querySelector("#app").innerHTML = `
   <div class="flex flex-col items-center space-y-8">
     <div class="flex gap-8">
