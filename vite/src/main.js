@@ -4,15 +4,23 @@ import "vite/modulepreload-polyfill";
 // Styles
 import "./styles/base.css";
 
+// Images
+import "./components/images.js";
+
 import viteLogo from "./assets/vite.svg";
 import { setupCounter } from "./components/counter.js";
 
 document.querySelector("#app").innerHTML = `
   <div class="flex flex-col items-center space-y-8">
-    <a href="https://vite.dev" target="_blank">
+    <div class="flex gap-8">
+      <a href="https://vite.dev" target="_blank">
       <img src="${viteLogo}" alt="Vite logo" class="size-16 transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#646cffaa]" />
-    </a>
-    <h1 class="text-3xl font-bold dark:text-[#cdd6f4]">Hello Vite!</h1>
+      </a>
+      <a href="https://flightphp.com" target="_blank">
+      <img src="${flightLogo}" alt="FlightPHP" class="h-16 dark:invert transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#666666aa]" />
+      </a>
+    </div>
+    <h1 class="text-3xl font-bold dark:text-[#cdd6f4]">Hello Vite + FlightPHP!</h1>
     <div class="dark:text-[#cdd6f4]">
       <button id="counter" type="button" class="bg-[#181825] hover:bg-[#11111b] text-white font-bold py-2 px-4 rounded cursor-pointer">Counter</button>
     </div>
