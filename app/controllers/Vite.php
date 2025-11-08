@@ -163,8 +163,9 @@ class Vite
     {
         $entry = $this->session->get('vite_entry') ?? 'main.js';
         if ($this->isDev($entry)) {
+            $assetPath = ltrim($assetPath, '/');
             // In development, assets are served from the /src directory
-            return $this->viteHost . '/assets/' . basename($assetPath);
+            return "{$this->viteHost}/{$assetPath}";
         } else {
             // In production, find asset in manifest
             $manifest = $this->getManifest();
