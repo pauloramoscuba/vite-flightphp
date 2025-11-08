@@ -1,34 +1,35 @@
 {
-	"name": "publitiva/flight-vite",
-	"description": "Proyecto Vite basado en flightphp/skeleton adaptado",
-	"keywords": ["microframework", "rest", "vite", "boilerplate", "skeleton"],
-	"authors": [
-		{
-			"name": "Paulo Ramos",
-			"email": "pauloramosc@gmail.com"
-		}
-	],
-	"require": {
-		"php": "^8.0",
-		"ext-json": "*",
-		"flightphp/core": "^3.0",
-		"tracy/tracy": "^2.9"
-	},
-	"config": {
-		"process-timeout": 0,
-		"sort-packages": true
-	},
-	"scripts": {
-		"start": "php -S localhost:8000 -t public",
-		"post-create-project-cmd": [
-			"@php -r \"copy('app/config/config_sample.php', 'app/config/config.php');\"",
-			"@php -r \"@mkdir('app/models', 0777, true);\"",
-			"@php -r \"@mkdir('app/utils', 0777, true);\"",
-			"@php -r \"@mkdir('app/cache', 0777, true);\"",
-			"@php -r \"@mkdir('app/log', 0777, true);\""
-		]
-	},
-	"require-dev": {
-		"flightphp/tracy-extensions": "^0.1 || ^0.2"
-	}
+    "name": "publitiva/flight-vite",
+    "description": "Proyecto Vite basado en flightphp/skeleton adaptado",
+    "keywords": ["microframework", "rest", "vite", "boilerplate", "skeleton"],
+    "authors": [
+        {
+            "name": "Paulo Ramos",
+            "email": "pauloramosc@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "ext-json": "*",
+        "flightphp/core": "^3.0",
+        "flightphp/session": "^0.3.0",
+        "tracy/tracy": "^2.9"
+    },
+    "config": {
+        "process-timeout": 0,
+        "sort-packages": true
+    },
+    "scripts": {
+        "start": "php -S localhost:8000 -t public",
+        "post-create-project-cmd": [
+            "@php -r \"copy('app/config/config_sample.php', 'app/config/config.php');\"",
+            "@php -r \"@mkdir('app/models', 0777, true);\"",
+            "@php -r \"@mkdir('app/utils', 0777, true);\"",
+            "@php -r \"@mkdir('app/cache', 0777, true);\"",
+            "@php -r \"@mkdir('app/log', 0777, true);\""
+        ]
+    },
+    "require-dev": {
+        "flightphp/tracy-extensions": "^0.1 || ^0.2"
+    }
 }
