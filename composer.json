@@ -1,5 +1,5 @@
 {
-    "name": "publitiva/flight-vite",
+    "name": "publitiva/vite-flightphp",
     "description": "Proyecto Vite basado en flightphp/skeleton adaptado",
     "keywords": ["microframework", "rest", "vite", "boilerplate", "skeleton"],
     "authors": [
