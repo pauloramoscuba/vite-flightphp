@@ -1,6 +1,6 @@
 # Vite-FlightPHP
 
-A modern PHP web application skeleton that combines the FlightPHP microframework with Vite for frontend asset management. This boilerplate provides a solid foundation for building web applications with PHP on the backend and modern frontend development tools.
+A modern PHP web application skeleton that combines the FlightPHP microframework with Vite and Tailwind CSS for comprehensive frontend asset management. This boilerplate provides a solid foundation for building responsive web applications with PHP on the backend and modern frontend development tools including hot reload and utility-first styling.
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-blue)![Node Version](https://img.shields.io/badge/node-%3E%3D18.0-green)
 
@@ -8,13 +8,12 @@ A modern PHP web application skeleton that combines the FlightPHP microframework
 
 - **FlightPHP 3.x** - Lightweight PHP microframework with minimal footprint
 - **Vite 7.x** - Next-generation frontend tooling for fast development and build times
-- **Tailwind CSS 4.x** - Utility-first CSS framework for rapid UI development
-- **Alpine.js 3.x** - Lightweight JavaScript framework for reactive UI components
+- **Tailwind CSS 4.x** - Utility-first CSS framework for rapid UI development and responsive design
 - **Hot Module Replacement (HMR)** - Instant updates during development without page reload
-- **Dark Mode Support** - Built-in dark/light theme toggle system
+- **Dark Mode Support** - Built-in dark/light theme toggle system with Tailwind integration
 - **PSR-12 Compliant** - Follows PHP coding standards for consistency
 - **Biome.js** - All-in-one JavaScript formatter, linter, and bundler
-- **Responsive Design** - Mobile-first approach for optimal user experience
+- **Mobile-first Responsive Design** - Optimized for all screen sizes with Tailwind utilities
 
 ## Prerequisites
 
@@ -26,7 +25,7 @@ A modern PHP web application skeleton that combines the FlightPHP microframework
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/pauloramoscuba/vite-flightphp
    cd vite-flightphp
    ```
 
@@ -59,12 +58,14 @@ A modern PHP web application skeleton that combines the FlightPHP microframework
 
 ### Understanding the Vite-FlightPHP Integration
 
-This project provides a seamless integration between FlightPHP (backend) and Vite (frontend). Here's how it works:
+This project provides a seamless integration between FlightPHP (backend) and Vite + Tailwind CSS (frontend). Here's how it works:
 
 **Development Mode:**
 - Vite serves frontend assets from `localhost:5173`
 - FlightPHP proxies asset requests to Vite
 - Hot Module Replacement (HMR) provides instant feedback during development
+- Tailwind CSS processes styles with post-processing and purges unused CSS
+- Dark mode toggler built with Tailwind's dark variant
 
 **Production Mode:**
 - Vite builds optimized assets to `public/dist/`
@@ -116,40 +117,40 @@ The `asset()` function automatically handles:
 
 ```
 vite-flightphp/
-├── app/                          # PHP application core
-│   ├── config/                   # Configuration files
-│   │   ├── bootstrap.php        # Application bootstrap
-│   │   ├── config.php           # Main application configuration
-│   │   ├── config_sample.php    # Sample configuration file
-│   │   ├── routes.php           # Route definitions
-│   │   └── services.php         # Service container definitions
-│   ├── controllers/              # Request controllers
+├── app/                            # PHP application core
+│   ├── config/                     # Configuration files
+│   │   ├── bootstrap.php           # Application bootstrap
+│   │   ├── config.php              # Main application configuration
+│   │   ├── config_sample.php       # Sample configuration file
+│   │   ├── routes.php              # Route definitions
+│   │   └── services.php            # Service container definitions
+│   ├── controllers/                # Request controllers
 │   │   ├── ApiExampleController.php  # Example API controller
-│   │   └── Vite.php             # Vite asset controller
-│   ├── middlewares/              # Middleware implementations
+│   │   └── Vite.php                # Vite asset controller
+│   ├── middlewares/                # Middleware implementations
 │   │   └── SecurityHeadersMiddleware.php  # Security headers implementation
-│   └── views/                    # PHP view templates
-│       └── welcome.php           # Welcome page view
-├── public/                       # Web root directory
-│   ├── index.php                 # Frontend controller (entry point)
-│   └── dist/                     # Production Vite assets (built on deploy)
-├── vendor/                       # PHP dependencies (via Composer)
-├── vite/                         # Frontend development environment
-│   ├── src/                      # Frontend source files
-│   │   ├── main.js               # Main JS entry point
-│   │   ├── assets/               # Static assets (images, etc.)
-│   │   ├── components/           # Frontend components
-│   │   │   ├── counter.js       # Counter component
-│   │   │   └── images.js        # Image handling
-│   │   ├── styles/               # CSS styles
-│   │   │   └── base.css         # Base styles with Tailwind
-│   ├── package.json              # Frontend dependencies
-│   └── vite.config.js            # Vite build configuration
-├── composer.json                 # PHP dependencies
-├── README.md                     # Project documentation
-├── .gitignore                    # Git ignore rules
-├── biome.json                    # Biome.js configuration
-└── ruleset.xml                   # PHP CodeSniffer ruleset
+│   └── views/                      # PHP view templates
+│       └── welcome.php             # Welcome page view
+├── public/                         # Web root directory
+│   ├── index.php                   # Frontend controller (entry point)
+│   └── dist/                       # Production Vite assets (built on deploy)
+├── vendor/                         # PHP dependencies (via Composer)
+├── vite/                           # Frontend development environment
+│   ├── src/                        # Frontend source files
+│   │   ├── main.js                 # Main JS entry point
+│   │   ├── assets/                 # Static assets (images, etc.)
+│   │   ├── components/             # Frontend components
+│   │   │   ├── counter.js          # Counter component
+│   │   │   └── images.js           # Image handling
+│   │   ├── styles/                 # CSS styles
+│   │   │   └── base.css            # Base styles with Tailwind
+│   ├── package.json                # Frontend dependencies
+│   └── vite.config.js              # Vite build configuration
+├── composer.json                   # PHP dependencies
+├── README.md                       # Project documentation
+├── .gitignore                      # Git ignore rules
+├── biome.json                      # Biome.js configuration
+└── ruleset.xml                     # PHP CodeSniffer ruleset
 ```
 
 ## Configuration
@@ -243,7 +244,7 @@ composer install --no-dev
 cd vite && npm ci --omit=dev && npm run build
 
 # Set proper file permissions
-chmod -R 755 storage
+chmod -R 755 public/dist
 chmod -R 755 public/uploads
 ```
 
@@ -314,21 +315,12 @@ This project follows security best practices:
 - Use a CDN for static assets in production
 - Implement database caching where appropriate
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-The MIT License is simple and permissive, allowing you to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
 ## Acknowledgments
 
 ### Core Technologies
 - [FlightPHP](https://flightphp.com/) - Lightweight PHP microframework
 - [Vite](https://vitejs.dev/) - Next-generation frontend tooling
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [Alpine.js](https://alpinejs.dev/) - Declarative JavaScript framework
 
 ### Development Tools
 - [Biome.js](https://biomejs.dev/) - All-in-one JavaScript formatter and linter
@@ -340,6 +332,6 @@ The above copyright notice and this permission notice shall be included in all c
 
 - Check the [troubleshooting section](#troubleshooting) for common issues
 - Review the [contributing guidelines](#contributing) for development process
-- Feel free to open an [issue](https://github.com/your-repo/issues) for bugs or feature requests
+- Feel free to open an [issue](https://github.com/pauloramoscuba/vite-flightphp/issues) for bugs or feature requests
 
 ---
