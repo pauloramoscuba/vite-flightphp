@@ -1,6 +1,7 @@
 <?php
 
 use flight\Engine;
+use flight\Session;
 //use flight\database\PdoWrapper;
 //use flight\debug\database\PdoQueryCapture;
 use flight\debug\tracy\TracyExtensionLoader;
@@ -117,3 +118,6 @@ if (Debugger::$showBar === true && php_sapi_name() !== 'cli') {
 
 // Vite loader
 $app->register('vite', Vite::class, [ $app ]);
+
+// Register the session service
+$app->register('session', Session::class);
