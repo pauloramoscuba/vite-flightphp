@@ -21,7 +21,7 @@
 
     <header id="page-header" class="fixed inset-x-0 top-0 z-30 flex flex-none items-center border-b border-white bg-[#cdd6f4] backdrop-blur-sm dark:border-black dark:bg-[#1e1e2e] h-18">
         <div class="container mx-auto xl:max-w-7xl px-4 lg:px-8 flex grow items-center justify-between gap-2">
-            <img src="<?= $app->vite()->asset('/assets/logo.png') ?>" alt="FlightPHP Logo" class="h-12 w-auto dark:invert">
+            <img src="<?= $app->vite()->asset('/assets/logo.png') ?>" alt="FlightPHP Logo" loading="lazy" class="h-12 w-auto dark:invert">
             <div class="flex items-center gap-3">
                 <button type="button" class="hs-dark-mode-active:hidden block hs-dark-mode font-medium text-gray-800 rounded-full hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200" data-hs-theme-click-value="dark">
                     <span class="group inline-flex shrink-0 justify-center items-center size-9">

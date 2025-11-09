@@ -17,10 +17,10 @@ document.querySelector("#app").innerHTML = `
   <div class="flex flex-col items-center space-y-8">
     <div class="flex gap-8">
       <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" alt="Vite logo" class="size-16 transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#646cffaa]" />
+      <img src="${viteLogo}" alt="Vite logo" loading="lazy" class="size-16 transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#646cffaa]" />
       </a>
       <a href="https://flightphp.com" target="_blank">
-      <img src="${flightLogo}" alt="FlightPHP" class="h-16 dark:invert transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#666666aa]" />
+      <img src="${flightLogo}" alt="FlightPHP" loading="lazy" class="h-16 dark:invert transition-shadow duration-200 hover:drop-shadow-2xl hover:drop-shadow-[#666666aa]" />
       </a>
     </div>
     <h1 class="text-3xl font-bold dark:text-[#cdd6f4]">Hello Vite + FlightPHP!</h1>
