@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\controllers;
 
 use flight\Engine;
@@ -24,9 +26,9 @@ class ApiExampleController
         // You could actually pull data from the database if you had one set up
         // $users = $this->app->db()->fetchAll("SELECT * FROM users");
         $users = [
-            [ 'id' => 1, 'name' => 'Bob Jones', 'email' => 'bob@example.com' ],
-            [ 'id' => 2, 'name' => 'Bob Smith', 'email' => 'bsmith@example.com' ],
-            [ 'id' => 3, 'name' => 'Suzy Johnson', 'email' => 'suzy@example.com' ],
+            ['id' => 1, 'name' => 'Bob Jones', 'email' => 'bob@example.com'],
+            ['id' => 2, 'name' => 'Bob Smith', 'email' => 'bsmith@example.com'],
+            ['id' => 3, 'name' => 'Suzy Johnson', 'email' => 'suzy@example.com'],
         ];
 
         // You actually could overwrite the json() method if you just wanted to
@@ -44,11 +46,11 @@ class ApiExampleController
         // You could actually pull data from the database if you had one set up
         // $user = $this->app->db()->fetchRow("SELECT * FROM users WHERE id = ?", [ $id ]);
         $users = [
-            [ 'id' => 1, 'name' => 'Bob Jones', 'email' => 'bob@example.com' ],
-            [ 'id' => 2, 'name' => 'Bob Smith', 'email' => 'bsmith@example.com' ],
-            [ 'id' => 3, 'name' => 'Suzy Johnson', 'email' => 'suzy@example.com' ],
+            ['id' => 1, 'name' => 'Bob Jones', 'email' => 'bob@example.com'],
+            ['id' => 2, 'name' => 'Bob Smith', 'email' => 'bsmith@example.com'],
+            ['id' => 3, 'name' => 'Suzy Johnson', 'email' => 'suzy@example.com'],
         ];
-        $users_filtered = array_filter($users, fn($data) => $data['id'] === (int) $id);
+        $users_filtered = array_filter($users, static fn($data) => $data['id'] === (int) $id);
         if ($users_filtered) {
             $user = array_pop($users_filtered);
         }
@@ -65,6 +67,6 @@ class ApiExampleController
         // $statement = $this->app->db()->runQuery(
         // "UPDATE users SET email = ? WHERE id = ?", [ $this->app->data['email'], $id ]
         // );
-        $this->app->json([ 'success' => true, 'id' => $id ], 200, true, 'utf-8', JSON_PRETTY_PRINT);
+        $this->app->json(['success' => true, 'id' => $id], 200, true, 'utf-8', JSON_PRETTY_PRINT);
     }
 }
