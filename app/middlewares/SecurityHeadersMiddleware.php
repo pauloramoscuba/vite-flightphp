@@ -99,15 +99,14 @@ class SecurityHeadersMiddleware
         $directives['script-src'] = $scriptSrc;
 
         // style-src: normally use nonce, but allow Tracy debug bar to use inline styles in development
+        $styleSrc = ["'self'"];
         if (Debugger::$showBar === true) {
-            $directives['style-src'] = ["'self'", "'unsafe-inline'"];
-        } else {
-            $styleSrc = ["'self'"];
-            if ($nonce !== '') {
-                $styleSrc[] = "'nonce-{$nonce}'";
-            }
-            $directives['style-src'] = $styleSrc;
+            $styleSrc = ["'self'", "'unsafe-inline'"];
         }
+        if ($nonce !== '' && Debugger::$showBar !== true) {
+            $styleSrc[] = "'nonce-{$nonce}'";
+        }
+        $directives['style-src'] = $styleSrc;
 
         // img-src: allow data URIs; in dev allow Vite origin for HMR
         $imgSrc = ["'self'", 'data:'];
