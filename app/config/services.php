@@ -1,12 +1,14 @@
 <?php
 
-use flight\Engine;
-use flight\Session;
+declare(strict_types=1);
+
 //use flight\database\PdoWrapper;
 //use flight\debug\database\PdoQueryCapture;
-use flight\debug\tracy\TracyExtensionLoader;
-use Tracy\Debugger;
 use app\controllers\Vite;
+use flight\debug\tracy\TracyExtensionLoader;
+use flight\Engine;
+use flight\Session;
+use Tracy\Debugger;
 
 /*********************************************
  *         FlightPHP Service Setup           *
@@ -18,7 +20,7 @@ use app\controllers\Vite;
  * @var Engine $app     FlightPHP app instance
  **********************************************/
 
- /**
+/**
  * @var $ds Directory Separator
  * @var $config Configuration array
  */
@@ -79,7 +81,7 @@ Debugger::$strictMode = true; // Show all errors (set to E_ALL & ~E_DEPRECATED f
 // Debugger::$editor = 'vscode'; // Enable clickable file links in debug bar
 // Debugger::$email = 'your@email.com'; // Send error notifications
 if (Debugger::$showBar === true && php_sapi_name() !== 'cli') {
-    (new TracyExtensionLoader($app)); // Load FlightPHP Tracy extensions
+    new TracyExtensionLoader($app); // Load FlightPHP Tracy extensions
 }
 
 /*
@@ -117,7 +119,7 @@ if (Debugger::$showBar === true && php_sapi_name() !== 'cli') {
 // $app->register('redis', Redis::class, [ $config['redis']['host'], $config['redis']['port'] ]);
 
 // Vite loader
-$app->register('vite', Vite::class, [ $app ]);
+$app->register('vite', Vite::class, [$app]);
 
 // Register the session service
 $app->register('session', Session::class);
