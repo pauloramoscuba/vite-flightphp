@@ -28,6 +28,9 @@ export default defineConfig({
         // emit manifest so PHP can find the hashed files
         manifest: true,
 
+        // Set to 0 to disable all asset inlining
+        assetsInlineLimit: 0,
+
         // our entry
         rollupOptions: {
             input: resolve(__dirname, "src/main.js"),
