@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 /**
-* @var object $app
-* @var string $message
-*/
+ * @var object $app
+ * @var string $message
+ */
 
 ?>
 <!DOCTYPE html>
@@ -50,8 +52,8 @@
     <div class="grid place-items-center px-4 mt-24">
 
         <h1 class="text-3xl font-bold dark:text-[#cdd6f4]">Welcome to the FlightPHP Skeleton Example!</h1>
-        <?php if (!empty($message)) { ?>
-        <h3 class="text-xl font-semibold dark:text-[#cdd6f4]"><?=$message?></h3>
+        <?php if (isset($message)) { ?>
+        <h3 class="text-xl font-semibold dark:text-[#cdd6f4]"><?= $message ?></h3>
         <br>
         <?php } ?>
 
