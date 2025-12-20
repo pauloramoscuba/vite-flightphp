@@ -13,6 +13,8 @@
  * This file is NOT tracked by git. Store sensitive credentials here.
  **********************************************/
 
+declare(strict_types=1);
+
 /**********************************************
  *         Application Environment            *
  **********************************************/
@@ -37,8 +39,8 @@ if (function_exists('setlocale') === true) {
  **********************************************/
 
 // Get the $app var to use below
-if (empty($app) === true) {
-    $app = Flight::app();
+if (!isset($app)) {
+    $app = \Flight::app();
 }
 
 // This autoloads your code in the app directory so you don't have to require_once everything
@@ -49,13 +51,13 @@ if (empty($app) === true) {
 $app->path(__DIR__ . $ds . '..' . $ds . '..');
 
 // Core config variables
-$app->set('flight.base_url', '/',);           // Base URL for your app. Change if app is in a subdirectory (e.g., '/myapp/')
-$app->set('flight.case_sensitive', false);    // Set true for case sensitive routes. Default: false
-$app->set('flight.log_errors', true);         // Log errors to file. Recommended: true in production
-$app->set('flight.handle_errors', false);     // Let Tracy handle errors if false. Set true to use Flight's error handler
+$app->set('flight.base_url', '/'); // Base URL for your app. Change if app is in a subdirectory (e.g., '/myapp/')
+$app->set('flight.case_sensitive', false); // Set true for case sensitive routes. Default: false
+$app->set('flight.log_errors', true); // Log errors to file. Recommended: true in production
+$app->set('flight.handle_errors', false); // Let Tracy handle errors if false. Set true to use Flight's error handler
 $app->set('flight.views.path', __DIR__ . $ds . '..' . $ds . 'views'); // Path to views/templates
-$app->set('flight.views.extension', '.php');  // View file extension (e.g., '.php', '.latte')
-$app->set('flight.content_length', false);    // Send content length header. Usually false unless required by proxy
+$app->set('flight.views.extension', '.php'); // View file extension (e.g., '.php', '.latte')
+$app->set('flight.content_length', false); // Send content length header. Usually false unless required by proxy
 $app->set('vite_host', 'localhost:5173');
 $app->set('production', false);
 
@@ -76,17 +78,14 @@ return [
         // 'dbname'   => 'your_db_name',   // Database name (e.g., 'flightphp')
         // 'user'     => 'your_username',  // Database user (e.g., 'root')
         // 'password' => 'your_password',  // Database password (never commit real passwords)
-
         // SQLite Example:
         // 'file_path' => __DIR__ . $ds . '..' . $ds . 'database.sqlite', // Path to SQLite file
     ],
-
     // Google OAuth Credentials
     // 'google_oauth' => [
     //     'client_id'     => 'your_client_id',     // Google API client ID
     //     'client_secret' => 'your_client_secret', // Google API client secret
     //     'redirect_uri'  => 'your_redirect_uri',  // Redirect URI for OAuth callback
     // ],
-
     // Add more configuration sections below as needed
 ];
