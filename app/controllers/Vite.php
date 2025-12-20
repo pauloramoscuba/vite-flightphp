@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\controllers;
 
+use app\services\Manifest;
 use flight\Engine;
 
 /**
@@ -14,6 +17,7 @@ class Vite
     private string $viteHost;
     private string $baseUrl;
     private object $session;
+    private Manifest $manifestService;
 
     /**
      * @param Engine $app
@@ -21,10 +25,15 @@ class Vite
     public function __construct(Engine $app)
     {
         $this->app = $app;
-        $this->viteHost = "http://" . $app->get('vite_host');
+        $this->viteHost = 'http://' . $app->get('vite_host');
         $this->baseUrl = $app->get('flight.base_url');
         /** @var \flight\Session $this->app->session() */
         $this->session = $this->app->session();
+
+        // Initialize manifest service
+        $projectRoot = dirname(__DIR__, 2); // app/controllers -> app -> project root
+        $manifestPath = "{$projectRoot}/public/dist/.vite/manifest.json";
+        $this->manifestService = new Manifest($this->baseUrl, $manifestPath);
     }
 
     /**
@@ -33,9 +42,7 @@ class Vite
     public function entry(string $entry): string
     {
         $this->session->set('vite_entry', $entry);
-        return $this->jsTag($entry)
-            . "\n" . $this->jsPreloadImports($entry)
-            . "\n" . $this->cssTag($entry);
+        return $this->jsTag($entry) . "\n" . $this->jsPreloadImports($entry) . "\n" . $this->cssTag($entry);
     }
 
     /**
@@ -63,7 +70,6 @@ class Vite
 
         curl_exec($handle);
         $error = curl_errno($handle);
-        curl_close($handle);
 
         return $exists = !$error;
     }
@@ -73,9 +79,7 @@ class Vite
      */
     public function jsTag(string $entry): string
     {
-        $url = $this->isDev($entry)
-            ? "{$this->viteHost}/{$entry}"
-            : $this->assetUrl($entry);
+        $url = $this->isDev($entry) ? "{$this->viteHost}/{$entry}" : $this->assetUrl($entry);
 
         if (!$url) {
             return '';
@@ -83,9 +87,16 @@ class Vite
 
         $nonce = $this->app->get('csp_nonce');
         if ($this->isDev($entry)) {
-            return "<script type=\"module\" nonce=\"{$nonce}\" src=\"{$this->viteHost}/@vite/client\"></script>\n"
-            . '<script type="module" nonce="' . $nonce . '" src="' . $url . '"></script>';
+            return (
+                "<script type=\"module\" nonce=\"{$nonce}\" src=\"{$this->viteHost}/@vite/client\"></script>\n"
+                . '<script type="module" nonce="'
+                . $nonce
+                . '" src="'
+                . $url
+                . '"></script>'
+            );
         }
+
         return "<script type=\"module\" nonce=\"{$nonce}\" src=\"{$url}\"></script>";
     }
 
@@ -117,46 +128,6 @@ class Vite
     }
 
     /**
-     * Helpers to locate files
-     */
-
-    /**
-     * Returns the decoded manifest as an associative array.
-     * If the manifest cannot be read or parsed, returns an empty array.
-     * @return array
-     */
-    public function getManifest(): array
-    {
-        // To keep the same behavior, point to public/dist/.vite/manifest.json
-        $projectRoot = dirname(__DIR__, 2); // app/controllers -> app -> project root
-        $manifestPath = "{$projectRoot}/public/dist/.vite/manifest.json";
-
-        if (!file_exists($manifestPath)) {
-            return [];
-        }
-
-        $content = file_get_contents($manifestPath);
-        if ($content === false) {
-            return [];
-        }
-
-        $data = json_decode($content, true);
-        if (!\is_array($data)) {
-            return [];
-        }
-        return $data;
-    }
-
-    public function assetUrl(string $entry): string
-    {
-        $manifest = $this->getManifest();
-
-        return isset($manifest[$entry])
-            ? $this->baseUrl . 'dist/' . $manifest[$entry]['file']
-            : '';
-    }
-
-    /**
      * Returns the URL for an asset (like image) referenced in the manifest
      */
     public function asset(string $assetPath): string
@@ -166,46 +137,42 @@ class Vite
             $assetPath = ltrim($assetPath, '/');
             // In development, assets are served from the /src directory
             return "{$this->viteHost}/{$assetPath}";
-        } else {
-            // In production, find asset in manifest
-            $manifest = $this->getManifest();
-            // Look for the asset in the manifest
-            foreach ($manifest as $key => $value) {
-                if (isset($value['file']) && basename($key) === basename($assetPath)) {
-                    return $this->baseUrl . 'dist/' . $value['file'];
-                }
+        }
+
+        // In production, find asset in manifest
+        $manifest = $this->manifestService->getManifest();
+        // Look for the asset in the manifest
+        foreach ($manifest as $key => $value) {
+            if (!isset($value['file'])) {
+                continue;
             }
 
-            // If not found in manifest, return a fallback path
-            return $this->baseUrl . 'dist/assets/' . basename($assetPath);
+            if (basename($key) !== basename($assetPath)) {
+                continue;
+            }
+
+            return $this->baseUrl . 'dist/' . $value['file'];
         }
+
+        // If not found in manifest, return a fallback path
+        return $this->baseUrl . 'dist/assets/' . basename($assetPath);
+    }
+
+    /**
+     * Get the URL for an entry asset
+     */
+    public function assetUrl(string $entry): string
+    {
+        return $this->manifestService->getEntryUrl($entry);
     }
 
     public function importsUrls(string $entry): array
     {
-        $urls = [];
-        $manifest = $this->getManifest();
-
-        if (!empty($manifest[$entry]['imports'])) {
-            foreach ($manifest[$entry]['imports'] as $imports) {
-                if (isset($manifest[$imports]['file'])) {
-                    $urls[] = $this->baseUrl . 'dist/' . $manifest[$imports]['file'];
-                }
-            }
-        }
-        return $urls;
+        return $this->manifestService->getImportsUrls($entry);
     }
 
     public function cssUrls(string $entry): array
     {
-        $urls = [];
-        $manifest = $this->getManifest();
-
-        if (!empty($manifest[$entry]['css'])) {
-            foreach ($manifest[$entry]['css'] as $file) {
-                $urls[] = $this->baseUrl . "dist/{$file}";
-            }
-        }
-        return $urls;
+        return $this->manifestService->getCssUrls($entry);
     }
 }
