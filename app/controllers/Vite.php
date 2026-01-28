@@ -20,7 +20,10 @@ class Vite
     private Manifest $manifestService;
 
     /**
-     * @param Engine $app
+     * Constructor
+     *
+     * @param Engine $app The Flight engine instance
+     * @return void
      */
     public function __construct(Engine $app)
     {
@@ -38,6 +41,9 @@ class Vite
 
     /**
      * Prints all the html entries needed for Vite
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return string The HTML tags for Vite entries
      */
     public function entry(string $entry): string
     {
@@ -51,6 +57,9 @@ class Vite
      * This method checks if the Vite dev server is up by attempting
      * to reach VITE_HOST/<entry>. The result is cached for the lifetime
      * of the request (static).
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return bool True if in development mode, false otherwise
      */
     public function isDev(string $entry): bool
     {
@@ -76,6 +85,11 @@ class Vite
 
     /**
      * Helpers to print tags
+     *
+     * Generates the JavaScript script tags for the entry
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return string The HTML script tags
      */
     public function jsTag(string $entry): string
     {
@@ -100,6 +114,12 @@ class Vite
         return "<script type=\"module\" nonce=\"{$nonce}\" src=\"{$url}\"></script>";
     }
 
+    /**
+     * Generates module preload link tags for imported modules
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return string The HTML preload link tags
+     */
     public function jsPreloadImports(string $entry): string
     {
         if ($this->isDev($entry)) {
@@ -113,6 +133,12 @@ class Vite
         return $res;
     }
 
+    /**
+     * Generates CSS link tags for the entry
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return string The CSS link tags
+     */
     public function cssTag(string $entry): string
     {
         // not needed on dev, it's injected by Vite
@@ -129,6 +155,9 @@ class Vite
 
     /**
      * Returns the URL for an asset (like image) referenced in the manifest
+     *
+     * @param string $assetPath The path to the asset (e.g., '/assets/logo.png')
+     * @return string The full URL to the asset
      */
     public function asset(string $assetPath): string
     {
@@ -160,17 +189,32 @@ class Vite
 
     /**
      * Get the URL for an entry asset
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return string The full URL to the entry asset
      */
     public function assetUrl(string $entry): string
     {
         return $this->manifestService->getEntryUrl($entry);
     }
 
+    /**
+     * Get URLs for imported modules
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return array<string> Array of URLs for imported modules
+     */
     public function importsUrls(string $entry): array
     {
         return $this->manifestService->getImportsUrls($entry);
     }
 
+    /**
+     * Get URLs for CSS files associated with an entry
+     *
+     * @param string $entry The entry file name (e.g., 'main.js')
+     * @return array<string> Array of URLs for CSS files
+     */
     public function cssUrls(string $entry): array
     {
         return $this->manifestService->getCssUrls($entry);

@@ -47,6 +47,9 @@ class Manifest
 
     /**
      * Returns the URL for an entry asset
+     *
+     * @param string $entry The entry name (e.g., 'main.js')
+     * @return string The full URL to the entry asset
      */
     public function getEntryUrl(string $entry): string
     {
@@ -57,6 +60,9 @@ class Manifest
 
     /**
      * Returns URLs for imported modules
+     *
+     * @param string $entry The entry name (e.g., 'main.js')
+     * @return array<string> Array of URLs for imported modules
      */
     public function getImportsUrls(string $entry): array
     {
@@ -87,6 +93,9 @@ class Manifest
 
     /**
      * Returns URLs for CSS files associated with an entry
+     *
+     * @param string $entry The entry name (e.g., 'main.js')
+     * @return array<string> Array of URLs for CSS files
      */
     public function getCssUrls(string $entry): array
     {

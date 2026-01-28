@@ -11,7 +11,10 @@ class ApiExampleController
     protected Engine $app;
 
     /**
-     * @param Engine $app
+     * Constructor
+     *
+     * @param Engine $app The Flight engine instance
+     * @return void
      */
     public function __construct($app)
     {
@@ -19,6 +22,8 @@ class ApiExampleController
     }
 
     /**
+     * Get all users
+     *
      * @return void
      */
     public function getUsers(): void
@@ -38,7 +43,9 @@ class ApiExampleController
     }
 
     /**
-     * @param mixed $id
+     * Get a user by ID
+     *
+     * @param mixed $id The user ID
      * @return void
      */
     public function getUser($id): void
@@ -58,7 +65,9 @@ class ApiExampleController
     }
 
     /**
-     * @param mixed $id
+     * Update a user by ID
+     *
+     * @param mixed $id The user ID
      * @return void
      */
     public function updateUser($id): void

@@ -24,20 +24,25 @@ class SecurityHeadersMiddleware
     protected bool $production;
 
     /**
+     * Constructor
      *
-     * @param Engine $app
+     * @param Engine $app The Flight engine instance
+     * @return void
      */
     public function __construct(Engine $app)
     {
         $this->app = $app;
-        $this->production = (bool) $this->app->get('production');
+        $this->production = $this->app->get('production') === true;
         $this->viteHost = $this->app->get('vite_host');
     }
 
     /**
      * Flight "before" middleware entry point.
      *
-     * @param array $params
+     * Sets all security headers on the response before the route is executed.
+     *
+     * @param array $params Route parameters
+     * @return void
      */
     public function before(array $params): void
     {
@@ -50,7 +55,9 @@ class SecurityHeadersMiddleware
     /**
      * Build all headers to be sent.
      *
-     * @return array<string,string> header-name => header-value
+     * Constructs and returns an array of security headers including CSP, HSTS, X-Frame-Options, etc.
+     *
+     * @return array<string,string> Array of header-name => header-value pairs
      */
     protected function buildHeaders(): array
     {
@@ -75,8 +82,11 @@ class SecurityHeadersMiddleware
     /**
      * Build a CSP string from directives.
      *
-     * @param string $nonce
-     * @return string
+     * Constructs the Content-Security-Policy header value based on the current environment
+     * and provided nonce. Handles development mode adjustments for Vite HMR and Tracy debug bar.
+     *
+     * @param string $nonce The CSP nonce value
+     * @return string The complete CSP header value
      */
     protected function buildCsp(string $nonce): string
     {
