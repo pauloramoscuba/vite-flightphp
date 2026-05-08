@@ -1,6 +1,6 @@
 # Vite-FlightPHP
 
-A modern PHP web application skeleton that combines the FlightPHP microframework with Vite and Tailwind CSS for comprehensive frontend asset management. This boilerplate provides a solid foundation for building responsive web applications with PHP on the backend and modern frontend development tools including hot reload and utility-first styling.
+A modern PHP web application skeleton that combines the FlightPHP microframework with Vite and Tailwind CSS for comprehensive frontend asset management. This boilerplate provides a solid foundation for building responsive web applications with PHP on the backend and modern frontend development tools including hot reload, utility-first styling, and file-based page caching.
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![PHP Version](https://img.shields.io/badge/php-%3E%3D8.0-blue)![Node Version](https://img.shields.io/badge/node-%3E%3D18.0-green)
 
@@ -14,6 +14,9 @@ A modern PHP web application skeleton that combines the FlightPHP microframework
 - **PSR-12 Compliant** - Follows PHP coding standards for consistency
 - **Biome.js** - All-in-one JavaScript formatter, linter, and bundler
 - **Mobile-first Responsive Design** - Optimized for all screen sizes with Tailwind utilities
+- **Page Caching** - File-based cache with automatic invalidation (data hash + mtime)
+- **Security Headers** - CSP, HSTS, X-Frame, and other security headers via middleware
+- **CSRF Protection** - Per-user caching support for anonymous users with guest_id
 
 ## Prerequisites
 
@@ -118,6 +121,7 @@ The `asset()` function automatically handles:
 ```
 vite-flightphp/
 ├── app/                            # PHP application core
+│   ├── cache/                      # Page cache files (generated)
 │   ├── config/                     # Configuration files
 │   │   ├── bootstrap.php           # Application bootstrap
 │   │   ├── config.php              # Main application configuration
@@ -127,8 +131,11 @@ vite-flightphp/
 │   ├── controllers/                # Request controllers
 │   │   ├── ApiExampleController.php  # Example API controller
 │   │   └── Vite.php                # Vite asset controller
+│   ├── log/                        # Tracy debugger logs
 │   ├── middlewares/                # Middleware implementations
 │   │   └── SecurityHeadersMiddleware.php  # Security headers implementation
+│   ├── services/                   # Service classes
+│   │   └── PageCache.php           # File-based page cache service
 │   └── views/                      # PHP view templates
 │       └── welcome.php             # Welcome page view
 ├── public/                         # Web root directory
@@ -150,6 +157,7 @@ vite-flightphp/
 ├── README.md                       # Project documentation
 ├── .gitignore                      # Git ignore rules
 ├── biome.json                      # Biome.js configuration
+├── AGENTS.md                       # Agent instructions for AI assistants
 └── ruleset.xml                     # PHP CodeSniffer ruleset
 ```
 
@@ -212,6 +220,118 @@ POST /api/users/{id}    - Update existing user (example data)
 ```
 
 Note: The API currently uses example data arrays. In a real application, you would connect these endpoints to a database or other data source.
+
+## Page Caching
+
+The application includes a custom file-based page cache with automatic invalidation. Cache is only active in production mode (development mode bypasses caching).
+
+### Basic Usage
+
+```php
+$router->get('/page', function () use ($app) {
+    $data = ['title' => 'Page', 'items' => $items];
+    $app->get('page_cache')->render('page', $data);
+});
+```
+
+### Cache Parameters
+
+```php
+$app->get('page_cache')->render(
+    'template',   // Template name (without extension)
+    $data,        // Data array passed to template
+    perUser: false,  // Enable per-user cache (default: false)
+    disabled: false   // Skip caching entirely (default: false)
+);
+```
+
+### Cache Features
+
+- **Automatic invalidation**: Cache regenerates when:
+  - Template file modification time changes
+  - Data passed to template changes
+- **Per-user caching**: Each user (or guest) gets their own cache
+- **TTL**: 24 hours (86,400 seconds)
+- **Separate cache files**: One file per URL + user combination
+
+### Cache Examples
+
+**1. Simple cached page:**
+```php
+$router->get('/about', function () use ($app) {
+    $app->get('page_cache')->render('about', [
+        'title' => 'About Us',
+        'content' => 'Welcome to our company...',
+    ]);
+});
+```
+
+**2. Per-user cached page (for pages with dynamic user data):**
+```php
+$router->get('/dashboard', function () use ($app) {
+    $app->get('page_cache')->render('dashboard', [
+        'user' => $currentUser,
+        'notifications' => $notifications,
+    ], perUser: true);
+});
+```
+
+**3. Per-user caching for anonymous users (CSRF forms):**
+```php
+$router->get('/contact', function () use ($app) {
+    $app->get('page_cache')->render('contact', [
+        'csrf_token' => $session->get('csrf_token'),
+        'form_data' => $formData,
+    ], perUser: true);
+});
+```
+
+**4. Skip caching (for real-time data or forms):**
+```php
+$router->get('/live-stats', function () use ($app) {
+    $app->get('page_cache')->render('live-stats', [
+        'data' => $realTimeData,
+    ], disabled: true);
+});
+```
+
+### Cache Files
+
+Cache files are stored in `app/cache/` directory:
+- `cr_<hash>.cache` - Cached HTML content
+- `cr_<hash>_hash.cache` - Data hash for validation
+
+### Cache Invalidation
+
+To manually invalidate cache:
+
+```php
+// Invalidate a specific URL
+$app->get('page_cache')->invalidate('/page');
+
+// Invalidate a specific URL for current user
+$app->get('page_cache')->invalidate('/page', perUser: true);
+
+// Invalidate all cached pages
+$app->get('page_cache')->invalidateAll();
+
+// List all cached URLs
+$cached = $app->get('page_cache')->listCached();
+```
+
+### Anonymous Users and CSRF
+
+For pages with CSRF-protected forms, use per-user caching. The cache automatically generates a unique `guest_id` for anonymous visitors in `app/config/services.php`:
+
+```php
+// Guest ID generation (automatic in services.php)
+$session = $app->get('session');
+if (!$session->get('guest_id')) {
+    $session->set('guest_id', bin2hex(random_bytes(16)));
+}
+```
+
+This ensures each visitor has their own cache, including their own CSRF token.
 
 ## Deployment
 
