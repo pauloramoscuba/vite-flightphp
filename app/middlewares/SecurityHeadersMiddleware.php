@@ -10,10 +10,8 @@ use Tracy\Debugger;
 /**
  * Sets a set of security headers (CSP, HSTS, X-Frame, etc).
  *
- * The CSP is built dynamically using:
- * - a nonce provided by the application (`csp_nonce`)
- * - whether the app is in production (`production`)
- * - Tracy debug bar presence (to allow inline styles when the bar is present)
+ * In production with page caching enabled, nonce is disabled to avoid CSP conflicts.
+ * Instead, 'self' is used which works with Vite's hashed filenames in production.
  *
  * This class centralises header construction and reduces repeated calls to the response API.
  */
@@ -61,12 +59,10 @@ class SecurityHeadersMiddleware
      */
     protected function buildHeaders(): array
     {
-        $nonce = (string) $this->app->get('csp_nonce');
-
         $headers = [];
 
         // Content-Security-Policy
-        $headers['Content-Security-Policy'] = $this->buildCsp($nonce);
+        $headers['Content-Security-Policy'] = $this->buildCsp();
 
         // Common security headers
         $headers['X-Frame-Options'] = 'SAMEORIGIN';
@@ -82,13 +78,12 @@ class SecurityHeadersMiddleware
     /**
      * Build a CSP string from directives.
      *
-     * Constructs the Content-Security-Policy header value based on the current environment
-     * and provided nonce. Handles development mode adjustments for Vite HMR and Tracy debug bar.
+     * Constructs the Content-Security-Policy header value based on the current environment.
+     * In production, nonce is disabled because page cache stores HTML with embedded scripts.
      *
-     * @param string $nonce The CSP nonce value
      * @return string The complete CSP header value
      */
-    protected function buildCsp(string $nonce): string
+    protected function buildCsp(): string
     {
         $directives = [];
 
@@ -96,25 +91,35 @@ class SecurityHeadersMiddleware
         $directives['default-src'] = ["'self'"];
 
         // script-src
+        // In dev: nonce + unsafe-eval + strict-dynamic
+        // In prod: 'self' only (strict-dynamic blocks 'self' so we don't use it)
         $scriptSrc = ["'self'"];
-        if ($nonce !== '') {
-            $scriptSrc[] = "'nonce-{$nonce}'";
-        }
-        // allow strict-dynamic which requires nonce-based scripts
-        $scriptSrc[] = "'strict-dynamic'";
-        // only allow unsafe-eval in non-production (helps dev tools / source maps)
         if ($this->production === false) {
+            $nonce = (string) $this->app->get('csp_nonce');
+            if ($nonce !== '') {
+                $scriptSrc[] = "'nonce-{$nonce}'";
+            }
             $scriptSrc[] = "'unsafe-eval'";
+            $scriptSrc[] = "'strict-dynamic'";
         }
         $directives['script-src'] = $scriptSrc;
 
-        // style-src: normally use nonce, but allow Tracy debug bar to use inline styles in development
+        // script-src-elem: in dev allow nonce, in prod only self
+        if ($this->production === false) {
+            $directives['script-src-elem'] = $scriptSrc;
+        } else {
+            $directives['script-src-elem'] = ["'self'"];
+        }
+
+        // style-src
         $styleSrc = ["'self'"];
         if (Debugger::$showBar === true) {
-            $styleSrc = ["'self'", "'unsafe-inline'"];
-        }
-        if ($nonce !== '' && Debugger::$showBar !== true) {
-            $styleSrc[] = "'nonce-{$nonce}'";
+            $styleSrc[] = "'unsafe-inline'";
+        } elseif ($this->production === false) {
+            $nonce = (string) $this->app->get('csp_nonce');
+            if ($nonce !== '') {
+                $styleSrc[] = "'nonce-{$nonce}'";
+            }
         }
         $directives['style-src'] = $styleSrc;
 
@@ -133,10 +138,9 @@ class SecurityHeadersMiddleware
         }
         $directives['connect-src'] = $connectSrc;
 
-        // Build the final CSP string by joining directive values with spaces and directives with semicolons.
+        // Build the final CSP string
         $parts = [];
         foreach ($directives as $name => $values) {
-            // Flatten and trim values, ignore empty arrays
             $values = array_filter(array_map('trim', $values), static fn($v) => $v !== '');
             if (count($values) === 0) {
                 continue;
