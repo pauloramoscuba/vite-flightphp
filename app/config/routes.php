@@ -19,11 +19,44 @@ $router->group(
     '',
     function (Router $router) use ($app) {
         $router->get('/', function () use ($app) {
-            $app->render('welcome', ['app' => $app, 'message' => 'You are gonna do great things!']);
+            $app->get('page_cache')->render('welcome', [
+                'app' => $app,
+                'message' => 'You are gonna do great things!',
+            ]);
         });
 
         $router->get('/hello-world/@name', function ($name) {
             echo "<h1>Hello world! Oh hey {$name}!</h1>";
+        });
+
+        $router->get('/cached-page', function () use ($app) {
+            $app->get('page_cache')->render('welcome', [
+                'app' => $app,
+                'message' => 'Automatically Cached page example!',
+            ]);
+        });
+
+        $router->get('/cached-page-per-user', function () use ($app) {
+            $app->get('page_cache')->render(
+                'welcome',
+                [
+                    'app' => $app,
+                    'message' => 'Per user cached page!',
+                ],
+                true,
+            );
+        });
+
+        $router->get('/no-cache-page', function () use ($app) {
+            $app->get('page_cache')->render(
+                'welcome',
+                [
+                    'app' => $app,
+                    'message' => 'No cache page!',
+                ],
+                false,
+                true,
+            );
         });
 
         $router->group('/api', function () use ($router) {
