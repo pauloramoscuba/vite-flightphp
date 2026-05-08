@@ -5,6 +5,7 @@ declare(strict_types=1);
 //use flight\database\PdoWrapper;
 //use flight\debug\database\PdoQueryCapture;
 use app\controllers\Vite;
+use app\services\PageCache;
 use flight\debug\tracy\TracyExtensionLoader;
 use flight\Engine;
 use flight\Session;
@@ -123,3 +124,12 @@ $app->register('vite', Vite::class, [$app]);
 
 // Register the session service
 $app->register('session', Session::class);
+
+// Generate guest ID for anonymous users (used for per-user caching and CSRF tokens)
+$session = $app->get('session');
+if ($session !== null && !$session->get('guest_id')) {
+    $session->set('guest_id', bin2hex(random_bytes(16)));
+}
+
+$pageCache = new PageCache($app, __DIR__ . $ds . '..' . $ds . 'cache');
+$app->set('page_cache', $pageCache);
