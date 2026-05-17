@@ -14,7 +14,7 @@ A modern PHP web application skeleton that combines the FlightPHP microframework
 - **PSR-12 Compliant** - Follows PHP coding standards for consistency
 - **Biome.js** - All-in-one JavaScript formatter, linter, and bundler
 - **Mobile-first Responsive Design** - Optimized for all screen sizes with Tailwind utilities
-- **Page Caching** - File-based cache with automatic invalidation (data hash + mtime)
+- **Page Caching** - File-based cache with stampede protection, automatic invalidation (data hash + mtime), and debug headers
 - **Security Headers** - CSP, HSTS, X-Frame, and other security headers via middleware
 - **CSRF Protection** - Per-user caching support for anonymous users with guest_id
 
@@ -226,7 +226,7 @@ Note: The API currently uses example data arrays. In a real application, you wou
 
 ## Page Caching
 
-The application includes a custom file-based page cache with automatic invalidation. Cache is only active in production mode (development mode bypasses caching).
+The application includes a custom file-based page cache with automatic invalidation and stampede protection. Cache is only active in production mode (development mode bypasses caching).
 
 ### Basic Usage
 
@@ -244,7 +244,8 @@ $app->get('page_cache')->render(
     'template',   // Template name (without extension)
     $data,        // Data array passed to template
     perUser: false,  // Enable per-user cache (default: false)
-    disabled: false   // Skip caching entirely (default: false)
+    disabled: false, // Skip caching entirely (default: false)
+    contentType: 'text/html; charset=UTF-8', // Content type (default: text/html)
 );
 ```
 
@@ -253,9 +254,12 @@ $app->get('page_cache')->render(
 - **Automatic invalidation**: Cache regenerates when:
   - Template file modification time changes
   - Data passed to template changes
+- **Stampede protection**: File locks prevent duplicate renders under concurrent requests
 - **Per-user caching**: Each user (or guest) gets their own cache
+- **Content-Type preserved**: Response content type is cached and restored on hit
+- **Response headers**: `X-Cache` (HIT/MISS) and `X-Render-Time` (ms) for debugging
 - **TTL**: 24 hours (86,400 seconds)
-- **Separate cache files**: One file per URL + user combination
+- **Single file per page**: Content, metadata, and hash stored together in `app/cache/`
 
 ### Cache Examples
 
@@ -298,11 +302,24 @@ $router->get('/live-stats', function () use ($app) {
 });
 ```
 
+### Debug Headers
+
+Each cached response includes headers for debugging:
+
+```
+X-Cache: HIT
+X-Render-Time: 0.15ms
+```
+
+```
+X-Cache: MISS
+X-Render-Time: 35.42ms
+```
+
 ### Cache Files
 
 Cache files are stored in `app/cache/` directory:
-- `cr_<hash>.cache` - Cached HTML content
-- `cr_<hash>_hash.cache` - Data hash for validation
+- `cr_<hash>.cache` - Single file per page (content + metadata + hash)
 
 ### Cache Invalidation
 

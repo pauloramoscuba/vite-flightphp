@@ -26,7 +26,7 @@ $router->group(
         });
 
         $router->get('/hello-world/@name', function ($name) {
-            echo "<h1>Hello world! Oh hey {$name}!</h1>";
+            echo '<h1>Hello world! Oh hey ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '!</h1>';
         });
 
         $router->get('/cached-page', function () use ($app) {

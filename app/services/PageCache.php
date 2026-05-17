@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace app\services;
 
 use flight\Engine;
+use Tracy\Debugger;
 
 /**
  * PageCache - Simple file-based page cache with data hash validation.
  *
  * Features:
- * - Separate cache file per page
+ * - Single cache file per page (content + metadata + hash)
  * - Per-user caching option
  * - Disable caching option
  * - Automatic regeneration when data changes
  * - View file modification detection (mtime-based)
+ * - Stampede protection via file locks
+ * - Content-Type preservation on cache hits
  *
  * @mago-ignore cyclomatic-complexity, kan-defect, no-empty-catch-clause
  */
@@ -55,48 +58,107 @@ class PageCache
      * @param array<string, mixed> $data Data to pass to template
      * @param bool $perUser Create separate cache per user (uses session user_id)
      * @param bool $disabled Skip caching completely
+     * @param string $contentType Response content type (default: text/html)
      * @return void
      */
-    public function render(string $template, array $data = [], bool $perUser = false, bool $disabled = false): void
-    {
+    public function render(
+        string $template,
+        array $data = [],
+        bool $perUser = false,
+        bool $disabled = false,
+        string $contentType = 'text/html; charset=UTF-8',
+    ): void {
         if ($disabled || $this->devMode) {
             $this->app->render($template, $data);
             return;
         }
 
+        $this->serveCached(
+            $this->generateDataHash($template, $data),
+            $perUser,
+            $contentType,
+            function () use ($template, $data) {
+                ob_start();
+                $this->app->render($template, $data);
+                return ob_get_clean();
+            },
+        );
+    }
+
+    /**
+     * Serve content from cache or render and cache it.
+     *
+     * Handles stampede protection, timing headers, and cache hit/miss logic.
+     *
+     * @param string $dataHash Hash for cache validation
+     * @param bool $perUser Per-user caching
+     * @param string $contentType Response content type
+     * @param callable $renderer Callable that renders and returns the output string
+     * @return void
+     */
+    private function serveCached(string $dataHash, bool $perUser, string $contentType, callable $renderer): void
+    {
         $uri = $this->app->request()->url ?? '';
         $cacheKey = $this->buildCacheKey($uri, $perUser);
-        $dataHash = $this->generateDataHash($template, $data);
-        $hashKey = $cacheKey . '_hash';
 
-        $viewsPath = $this->app->get('flight.views.path') ?? '';
-        $viewsExt = $this->app->get('flight.views.extension') ?? '.php';
-        $templatePath = $viewsPath . DIRECTORY_SEPARATOR . $template;
-        if (!str_ends_with($templatePath, $viewsExt)) {
-            $templatePath .= $viewsExt;
+        $start = microtime(true);
+        $cached = $this->readCache($cacheKey, $dataHash);
+
+        if ($cached !== null) {
+            $this->sendCachedResponse($cached, $start);
+            return;
         }
-        $mtime = file_exists($templatePath) ? (string) filemtime($templatePath) : '0';
 
-        $storedHash = $this->readCache($hashKey);
-
-        if ($storedHash !== null && $storedHash === $dataHash) {
-            $cachedOutput = $this->readCache($cacheKey);
-            if ($cachedOutput !== null) {
-                $this->app->response()->header('X-Cache', 'HIT');
-                echo $cachedOutput;
+        // Stampede protection: acquire lock before rendering
+        $lockPath = $this->cacheDir . $cacheKey . '.lock';
+        $lock = fopen($lockPath, 'c');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock !== false) {
+                flock($lock, LOCK_SH);
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+            $cached = $this->readCache($cacheKey, $dataHash);
+            if ($cached !== null) {
+                $this->sendCachedResponse($cached, $start);
                 return;
             }
         }
 
-        ob_start();
-        $this->app->render($template, $data);
-        $output = ob_get_clean();
+        $output = $renderer();
 
-        $this->writeCache($cacheKey, $output, 86_400);
-        $this->writeCache($hashKey, $dataHash, 86_400);
+        $this->writeCache($cacheKey, $output, 86_400, $dataHash, ['uri' => $uri, 'content_type' => $contentType]);
 
+        if ($lock !== false) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+        if (file_exists($lockPath)) {
+            unlink($lockPath);
+        }
+
+        $elapsed = round((microtime(true) - $start) * 1000, 2);
         $this->app->response()->header('X-Cache', 'MISS');
+        $this->app->response()->header('X-Render-Time', $elapsed . 'ms');
         echo $output;
+    }
+
+    /**
+     * Send a cached response with appropriate headers.
+     *
+     * @param array{content: string, content_type?: string} $cached Cached data
+     * @param float $start Request start time
+     * @return void
+     */
+    private function sendCachedResponse(array $cached, float $start): void
+    {
+        $elapsed = round((microtime(true) - $start) * 1000, 2);
+        $this->app->response()->header('X-Cache', 'HIT');
+        $this->app->response()->header('X-Render-Time', $elapsed . 'ms');
+        if (is_string($cached['content_type'] ?? null)) {
+            $this->app->response()->header('Content-Type', $cached['content_type']);
+        }
+        echo $cached['content'];
     }
 
     /**
@@ -109,7 +171,7 @@ class PageCache
     public function invalidate(string $uri, bool $perUser = false): void
     {
         if ($perUser) {
-            $files = glob($this->cacheDir . md5($uri) . '*');
+            $files = glob($this->cacheDir . 'cr_' . md5($uri) . '*');
             foreach ($files as $file) {
                 if (!file_exists($file)) {
                     continue;
@@ -120,7 +182,6 @@ class PageCache
 
         $cacheKey = $this->buildCacheKey($uri, false);
         $this->removeCacheFile($cacheKey);
-        $this->removeCacheFile($cacheKey . '_hash');
     }
 
     /**
@@ -151,11 +212,13 @@ class PageCache
 
         foreach ($files as $file) {
             $basename = basename($file, '.cache');
-            if (str_starts_with($basename, 'cr_')) {
-                $uri = $this->extractUriFromKey($basename);
-                if ($uri && !in_array($uri, $cached, true)) {
-                    $cached[] = $uri;
-                }
+            if (!str_starts_with($basename, 'cr_')) {
+                continue;
+            }
+            $data = $this->readCacheRaw($file);
+            $uri = $data['uri'] ?? null;
+            if ($uri !== null && !in_array($uri, $cached, true)) {
+                $cached[] = $uri;
             }
         }
 
@@ -201,8 +264,9 @@ class PageCache
                     return (string) $guestId;
                 }
             }
-        } catch (\Throwable $e) {
-            // @mago-expect: Session not available, use guest
+        } catch (\Throwable) {
+            // Session not available, fallback to guest ID
+            Debugger::log('PageCache: session not available', Debugger::WARNING);
         }
         return 'guest';
     }
@@ -233,35 +297,61 @@ class PageCache
     }
 
     /**
-     * Read cached content by key.
+     * Read and validate cached data.
+     *
+     * Returns the full cache data array if valid, null otherwise.
+     * Automatically removes expired or stale entries.
      *
      * @param string $key Cache key
-     * @return string|null Cached content or null if not found/expired
+     * @param string|null $dataHash Expected data hash (null to skip validation)
+     * @return array{content: string, content_type: string}|null Cache data or null
      */
-    private function readCache(string $key): ?string
+    private function readCache(string $key, ?string $dataHash = null): ?array
     {
         $path = $this->getFilePath($key);
         if (!file_exists($path)) {
             return null;
         }
 
-        $content = file_get_contents($path);
-        if ($content === false) {
-            return null;
-        }
-
-        $data = unserialize($content);
-        if (!is_array($data)) {
+        $data = $this->readCacheRaw($path);
+        if ($data === null) {
             return null;
         }
 
         $expires = $data['expires'] ?? 0;
         if ($expires > 0 && $expires < time()) {
-            $this->removeCacheFile($path);
+            unlink($path);
             return null;
         }
 
-        return $data['content'] ?? null;
+        if ($dataHash !== null && ($data['data_hash'] ?? null) !== $dataHash) {
+            unlink($path);
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Read raw cache data from a file path.
+     *
+     * @param string $path Cache file path
+     * @return array<string, mixed>|null Decoded data or null
+     */
+    private function readCacheRaw(string $path): ?array
+    {
+        if (!file_exists($path)) {
+            return null;
+        }
+        $content = file_get_contents($path);
+        if ($content === false) {
+            return null;
+        }
+        $data = unserialize($content, ['allowed_classes' => false]);
+        if ($data === false || !is_array($data)) {
+            return null;
+        }
+        return $data;
     }
 
     /**
@@ -270,14 +360,19 @@ class PageCache
      * @param string $key Cache key
      * @param string $content Content to cache
      * @param int $ttl Time to live in seconds
+     * @param string $dataHash Data hash for validation
+     * @param array{uri?: string, content_type?: string} $meta Optional metadata
      * @return void
      */
-    private function writeCache(string $key, string $content, int $ttl): void
+    private function writeCache(string $key, string $content, int $ttl, string $dataHash, array $meta = []): void
     {
         $data = [
             'content' => $content,
+            'content_type' => $meta['content_type'] ?? null,
+            'data_hash' => $dataHash,
             'expires' => time() + $ttl,
             'created' => time(),
+            'uri' => $meta['uri'] ?? null,
         ];
 
         $path = $this->getFilePath($key);
@@ -285,14 +380,20 @@ class PageCache
     }
 
     /**
-     * Extract URI from cache key.
+     * Generate a stable hash for an object value.
      *
-     * @param string $key Cache key
-     * @return string|null URI or null
+     * Falls back to class name when serialization fails (e.g. Closures).
+     *
+     * @param object $value Object to hash
+     * @return string Hash string
      */
-    private function extractUriFromKey(string $key): ?string
+    private function hashObject(object $value): string
     {
-        return null;
+        try {
+            return md5(serialize($value));
+        } catch (\Throwable) {
+            return get_class($value);
+        }
     }
 
     /**
@@ -324,7 +425,7 @@ class PageCache
             $hashableData[$key] = match (true) {
                 is_scalar($value) => $value,
                 is_array($value) => md5(json_encode($value)),
-                default => gettype($value),
+                is_object($value) => $this->hashObject($value),
             };
         }
         return md5(json_encode($hashableData));
